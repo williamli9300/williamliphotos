@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style media="screen">
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap');
+
+        .boundingbox {
+            width: 90vw;
+            height: 100svw;
+            position: absolute;
+            top: 5%;
+            left: 50%;
+            transform: translate(-50%, 0%);
+            outline-color: #555;
+            outline-style: solid;
+            outline-width: 1px;
+        }
+
+        h2 {
+            color: #7aa0a3;
+            font-size: 22pt;
+            font-weight: 500;
+            font-family: "Josefin Sans", sans-serif;
+            line-height: 1.5em;
+
+        }
+
+        p {
+            color: #606060;
+            font-size: 14pt;
+            font-family: "Cormorant Garamond", serif;
+            line-height: 1.5em;
+
+        }
+
+        .p {
+            color: #606060;
+            font-size: 14pt;
+            font-family: "Cormorant Garamond", serif;
+            line-height: 1.5em;
+
+        }
+
+        a:link {
+            color: #7aa0a3;
+            text-decoration: underline;
+        }
+
+        code {
+            font-family: "Source Code Pro", monospace;
+            font-size: 11pt;
+            color: black;
+            background-color: #eff1f3;
+            border-radius: 5px;
+            padding-left: 6px;
+            padding-right: 6px;
+
+        }
+
+        pre code {
+            border-radius: 0px;
+        }
+
+        .hcode {
+            font-size: 19pt;
+            color: #7aa0a3;
+        }
+
+        table {
+            border: 0px solid black;
+            border-collapse: collapse;
+            padding: 6px;
+            font-family: "Source Code Pro", monospace;
+            font-size: 10pt;
+            table-layout: fixed;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 6px;
+            font-family: "Source Code Pro", monospace;
+            font-size: 10pt;
+            line-height: 1.5em;
+        }
+
+        .center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <p>If you've used StarNet before, you know long it takes sometimes to process a single image. Chances are, you'd
+        love to find a way to speed it up!
+        If you have a NVIDIA GPU, look no further: using CUDA acceleration, you can consistently improve performance by
+        over 80%!
+        <br>
+        <br>
+        <b>If you don't have a NVIDIA GPU,</b> no worries — all DirectX 12 compatible GPU's on Windows can be
+        accelerated using DirectML! However, this
+        technique currently only works with StarNet V1. Stay tuned for further updates.
+        <br>
+        <br>
+        ​This tutorial is based upon the tutorial by DarkArchon, which can be found <a
+            href="https://darkskies.space/pixinsight-starnet-cuda/">on their website</a>
+        (UPDATE: August 2024: DarkArchon's tutorial is currently down). It is written for StarNet V2, PixInsight 1.8.9,
+        and CUDA 11.8. StarNet V2 has a few notable changes from the original: the standalone module now exists as a GUI
+        instead of a command-line application, its highest stride has been increased from 128 to 256 and now 384, and the PixInsight
+        module now works on linear images as well (no need for the LinearStarnet script anymore!) This guide is meant to be used with 
+        the standalone StarNet++ module written by Nikita Misiura (aka nekitmm),
+        which can be found at the StarNet project website, <a
+            href="https://www.starnetastro.com/">www.starnetastro.com</a>. A version using Anaconda Navigator, written
+        by Johannes Schäfer (MrSheppard), containing CUDA 11.4, can be found on <a
+            href="https://drive.google.com/file/d/12wDj_Q-TbaMuuhKjUU-adp9Fsbd2-9FZ/view">Google Drive</a>.
+        <br>
+        <br>
+        Now, let's get started!
+    </p>
+    <br>
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/starnet_website.png?raw=true"
+        style="width: 60vw;" class="center">
+    <br><br>
+
+    <h2>0. Compatibility</h2>
+    <p>This tutorial is meant for x64 systems running Windows 10 or 11. Windows on ARM is not supported. An NVIDIA GPU
+        with CUDA compute capabilities of <code>&ge;3.5</code> is required. <br>
+        A list of GPUs and their compute capabilities can be found on <a
+            href="https://developer.nvidia.com/cuda-gpus">NVIDIA's website</a>.
+        <br>
+        <br>
+        This tutorial has been tested to work with PixInsight 1.8.9-3 (Ripley), StarNet for PixInsight 2.1.1-0126.
+        <br>As of this writing, <code>libtensorflow 2.10.0</code> and <code>CUDA 11.2</code> with
+        <code>cuDNN SDK 8.1</code> are the officially compatible software versions published on the <a
+            href="https://www.tensorflow.org/install/source#tested_build_configurations">TensorFlow</a> website.
+        However, success has been achieved with software versions up to <code>CUDA 11.8.0</code> and
+        <code>cuDNN 8.9.7.29</code> for
+        <code>CUDA 11.x</code>.
+        <br>
+        <br>
+        <b>NOTE: The TensorFlow C API with CUDA GPU support DOES NOT support <code>CUDA 12.x</code></b>.
+        <br>
+        <b>NOTE: The TensorFlow C API with CUDA GPU support ONLY supports <code>cuDNN 8.x</code></b>.
+    </p>
+    <p><b>If you are using the standalone StarNet module:</b></p>
+    <ul class="p">
+        <li class="p">Download <code>StarNetv2CLI_Win.zip</code> or <code>StarNetv2GUI_Win.zip</code> from the <a
+                href="https://www.starnetastro.com/download/">StarNetAstro website</a>, then extract the folder where
+            you would like to keep the module (e.g. Downloads, Desktop, etc.). GUI gives the graphical interface, while
+            CLI gives the command line interface.​</li>
+    </ul>
+    <p><b>If you are using StarNet with PixInsight:</b></p>
+    <ul class="p">
+        <li class="p">Download the appropriate StarNet2 PixInsight module from the StarNetAstro website, and install
+            according to the instructions found in the <code>README</code> file.​</li>
+    </ul>
+    <br>
+
+    <h2>1. Extracting and Replacing <code class="hcode">tensorflow.dll</code></h2>
+    <p>Download the the latest Windows GPU C library <code>libtensorflow-gpu-windows-x86_64-2.10.0.zip</code> <a
+            href="https://www.tensorflow.org/install/lang_c">the TensorFlow project</a>.
+        <br>
+        Extract the folder, then navigate to <code>\lib</code> within the folder.
+        <br>
+        <b>Note: As of this writing, TensorFlow 2.10 is the last TensorFlow release that supports CUDA GPU acceleration
+            on native Windows.</b>
+    </p>
+    <p><b>If you are using the standalone StarNet module:</b></p>
+    <ul class="p">
+        <li class="p">Replace the file titled <code>tensorflow.dll</code> from <code>StarNetv2GUI_Win</code> or
+            <code>StarNetv2CLI_Win</code> (whichever was downloaded) with the new <code>tensorflow.dll</code> from
+            <code>\libtensorflow-gpu-windows-x86_64-2.10.0\lib</code>.
+        </li>
+    </ul>
+    <p><b>If you are using StarNet with PixInsight:</b></p>
+    <ul class="p">
+        <li class="p">Replace the file titled <code>tensorflow.dll</code> from
+            <code>C:\Program Files\PixInsight\bin</code> with the new <code>tensorflow.dll</code> from
+            <code>\libtensorflow-gpu-windows-x86_64-2.10.0\lib</code>.​
+        </li>
+    </ul>
+    <br>
+
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/tensorflow_dll.png?raw=true"
+        style="width: 50vw" class="center">
+    <br><br>
+
+    <h2>2. Installing <code class="hcode">CUDA</code></h2>
+    <p>Download the latest CUDA Toolkit installer <a href="https://developer.nvidia.com/cuda-toolkit-archive"> from
+            NVIDIA's CUDA Toolkit archive</a> (tested up to CUDA 11.8), then double-click to run. <br>Follow the on-screen instructions. 
+        Select <code>Express (Recommended)</code> to install all CUDA components.
+        <br>
+    </p>
+    <br>
+
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/cuda_installer.png?raw=true"
+        style="width: 30vw" class="center">
+
+    <h2>3. Environment Variables</h2>
+    <p>Open the Environment Variables editor by searching for "Environment Variables" in the <code>&#8862; Win</code>
+        Windows Search Bar, selecting <code>Edit the system environment variables</code>, then clicking
+        <code>Environment Variables</code>.
+        <br>
+        <br>
+        <b>For all environment variables/paths below:</b> If you are using a different version of CUDA, change the version numbers accordingly.
+        <br>
+        <br>
+        First, check that the following System Variables are present. If not, add them:
+    </p>
+    <ul class="p">
+
+        <li class="p"><code>CUDA_PATH</code> = <code>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8</code>​
+        </li>
+        <li class="p"><code>CUDA_PATH_V11_8</code> =
+            <code>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8</code>​
+        </li>
+        <li class="p"><code>TF_FORCE_GPU_ALLOW_GROWTH</code> = <code>TRUE</code>​</li>
+    </ul>
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/envvars_sys_1.png?raw=true"
+        style="width: 60vw" class="center">
+    <p>Then, ensure that the following paths are present under the System <code>PATH</code> variable:</p>
+    <ul class="p">
+        <li class="p"><code>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin</code></li>
+        <li class="p"><code>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\libnvvp</code>​</li>
+    </ul>
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/envvars_sys_2.png?raw=true"
+        style="width: 60vw" class="center">
+
+    <br>
+
+    <h2>4. Final Files: <code class="hcode">cuDNN</code></h2>
+    <p>
+        Download the latest <code>cudnn-windows-x86_64-8.[x]_cuda11-archive.zip</code> from the <a
+            href="https://developer.download.nvidia.com/compute/cudnn/redist/cudnn/windows-x86_64/">
+            NVIDIA cuDNN redistributables archive</a>, ensuring that the cuDNN CUDA version matches the CUDA version
+        installed in your system.
+        <br>
+        Unzip the cuDNN <code>*.zip</code> archive, then copy all of the <code>*.dll</code> files from
+        <code>\cudnn-windows-x86_64-8.[x]_cuda11-archive\bin</code>
+        into <code>C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\bin</code>.
+        <br>
+        <br>
+    </p>
+
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/cudnn.png?raw=true"
+        style="width: 60vw" class="center">
+
+
+    <h2>6. Testing StarNet with <code class="hcode">CUDA</code> and Troubleshooting</h2>
+    <p>To check if CUDA is working, open Task Manager, click "More Details" at the bottom of the window, then click on
+        the "Performance" tab at the top. Click on your GPU.
+        Run an instance of the StarNet which has had its original <code>tensorflow.dll</code> replaced with the
+        GPU-enabled version.
+        <br>
+        <br>
+        <b>If you were successful in enabling CUDA acceleration</b>, the usage graph for your GPU usage should spike
+        with minimal CPU usage uptick. Without GPU acceleration,
+        the CPU usage graph would shoot upward but the GPU usage graph would stay constant.
+        <br>
+        <b>If your GPU usage doesn't go up</b>, check to make sure all files were copied to the correct folders, and
+        that all environment variables were added correctly.
+        <br>
+        <br>
+        Running the standalone module can help reveal potential reasons behind an error or a crash, as the console
+        output can give clues as to what's going on. The PixInsight module does not have this information in its console
+        I/O.
+        <br>
+        <br>
+    </p>
+
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/taskmgr.png?raw=true"
+        style="width: 40vw" class="center">
+
+    <h2>7. A Quick Benchmark</h2>
+    <p>
+        I wanted to see just how much performance increase I was able to get by upgrading to StarNet V2 with CUDA
+        acceleration, so I ran a very short test.
+        By no means is this an exhaustive test, nor do I guarantee that everyone else will see similar results. Your
+        mileage will vary depending on your hardware configuration,
+        as well as the image that you run through StarNet.
+        <br>
+        <br>
+        ​I'm running PixInsight 1.8.9-3 on Windows 11, with an AMD Ryzen 9 7950X CPU and NVIDIA GeForce RTX 4070 GPU. A non-linear
+        <code>6000 x 4000</code> image of M31 was used as a benchmark.
+    </p>
+    <ul>
+
+        <li class="p">Stock StarNetV2 on <code>Stride = 256</code>averaged <code>01:19.3</code>, while StarNetV2 + CUDA
+            averaged
+            <code>00:12.5</code> — an 84% improvement!
+        </li>
+        <li class="p">Stock StarNetV2 on <code>Stride = 384</code>averaged <code>00:16.6</code>, while StarNetV2 + CUDA
+            averaged
+            <code>00:07.2</code> — less dramatic, but still a 57% improvement! Your mileage may vary with more or less
+            dramatic time savings depending on your CPU/GPU combination.
+        </li>
+        <details>
+            <summary class="p">Click To View Test Data</summary>
+            <br>
+
+            <table class="center">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th colspan="2">CPU Processing <br>(<code style="font-size: 10pt;">tensorflow-cpu-2.15.0</code>)
+                        </th>
+                        <th colspan="2">CUDA GPU Acceleration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Test</td>
+                        <td>Time (mm:ss.xx)<br>Stride = 256</td>
+                        <td>Time (mm:ss.xx)<br>Stride = 384</td>
+                        <td>Time (mm:ss.xx)<br>Stride = 256</td>
+                        <td>Time (mm:ss.xx)<br>Stride = 384</td>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>01:03.87</td>
+                        <td>00:16.687</td>
+                        <td>00:14.041</td>
+                        <td>00:07.523</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>01:15.68</td>
+                        <td>00:16.759</td>
+                        <td>00:12.358</td>
+                        <td>00:07.057</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>01:18.27</td>
+                        <td>00:16.548</td>
+                        <td>00:12.737</td>
+                        <td>00:07.125</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>01:19.33</td>
+                        <td>00:16.511</td>
+                        <td>00:12.316</td>
+                        <td>00:07.194</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>01:17.60</td>
+                        <td>00:16.916</td>
+                        <td>00:12.337</td>
+                        <td>00:07.188</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>01:19.35</td>
+                        <td>00:16.741</td>
+                        <td>00:12.114</td>
+                        <td>00:07.142</td>
+                    </tr>
+                    <tr>
+                        <td>7</td>
+                        <td>01:19.33</td>
+                        <td>00:16.567</td>
+                        <td>00:12.623</td>
+                        <td>00:07.214</td>
+                    </tr>
+                    <tr>
+                        <td>8</td>
+                        <td>01:21.26</td>
+                        <td>00:16.759</td>
+                        <td>00:12.459</td>
+                        <td>00:07.091</td>
+                    </tr>
+                    <tr>
+                        <td>9</td>
+                        <td>01:20.52</td>
+                        <td>00:16.577</td>
+                        <td>00:12.356</td>
+                        <td>00:07.026</td>
+                    </tr>
+                    <tr>
+                        <td>10</td>
+                        <td>01:25.05</td>
+                        <td>00:16.462</td>
+                        <td>00:12.37</td>
+                        <td>00:07.256</td>
+                    </tr>
+                    <tr>
+                        <td>11</td>
+                        <td>01:19.13</td>
+                        <td>-</td>
+                        <td>00:12.363</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>12</td>
+                        <td>01:22.00</td>
+                        <td>-</td>
+                        <td>00:12.22</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>13</td>
+                        <td>01:13.64</td>
+                        <td>-</td>
+                        <td>00:12.315</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>14</td>
+                        <td>01:21.20</td>
+                        <td>-</td>
+                        <td>00:12.516</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>15</td>
+                        <td>01:23.66</td>
+                        <td>-</td>
+                        <td>00:12.529</td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>AVG</td>
+                        <td>01:19.326</td>
+                        <td>00:16.653</td>
+                        <td>00:12.510</td>
+                        <td>00:07.182</td>
+                    </tr>
+                    <tr>
+                        <td>MED</td>
+                        <td>01:19.350</td>
+                        <td>00:16.632</td>
+                        <td>00:12.363</td>
+                        <td>00:07.165</td>
+                    </tr>
+                    <tr>
+                        <td>STDEV</td>
+                        <td>00:04.945</td>
+                        <td>00:00.142</td>
+                        <td>00:00.451</td>
+                        <td>00:00.140</td>
+                    </tr>
+                </tbody>
+            </table>
+        </details>
+    </ul>
+    <p>Although not everyone will see the same results as these, CUDA acceleration of StarNet has been known to
+        consistently show a performance increase of around 50-80+% in most systems, depending on your hardware
+        combination, image file, and StarNet settings.
+        <br>
+        <br>
+        Pretty impressive for so little work—that's the beauty of taking advantage of existing hardware!
+    </p>
+    </p>
+    <img src="https://github.com/williamli9300/williamliphotos/blob/main/starnet-cuda/img/pi_console.png?raw=true"
+        style="width: 40vw" class="center">
+
+    <p>Thanks for reading this tutorial, and clear skies to everyone! If you have any comments or questions please don't
+        hesitate to contact me!
+        <br>
+        <br>
+        ​​–W
+    </p>
+
+</body>
+
+</html>
