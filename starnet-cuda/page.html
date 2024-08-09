@@ -45,7 +45,6 @@
 
         a:link {
             color: #7aa0a3;
-            text-decoration: underline;
         }
 
         code {
@@ -112,10 +111,13 @@
             href="https://darkskies.space/pixinsight-starnet-cuda/">on their website</a>
         (UPDATE: August 2024: DarkArchon's tutorial is currently down). It is written for StarNet V2, PixInsight 1.8.9,
         and CUDA 11.8. StarNet V2 has a few notable changes from the original: the standalone module now exists as a GUI
-        instead of a command-line application, its highest stride has been increased from 128 to 256 and now 384, and the PixInsight
-        module now works on linear images as well (no need for the LinearStarnet script anymore!) This guide is meant to be used with 
-        the standalone StarNet++ module written by Nikita Misiura (aka nekitmm),
-        which can be found at the StarNet project website, <a
+        instead of a command-line application, its highest stride has been increased from 128 to 256 and now 384, and
+        the PixInsight
+        module now works on linear images as well (no need for the LinearStarnet script anymore!) <br>
+        <br>
+        This guide is meant to be used with
+        the standalone StarNet++ module and/or StarNet++ PixInsight module, written by Nikita Misiura (aka nekitmm).
+        Both can be found at the StarNet project website, <a
             href="https://www.starnetastro.com/">www.starnetastro.com</a>. A version using Anaconda Navigator, written
         by Johannes Schäfer (MrSheppard), containing CUDA 11.4, can be found on <a
             href="https://drive.google.com/file/d/12wDj_Q-TbaMuuhKjUU-adp9Fsbd2-9FZ/view">Google Drive</a>.
@@ -193,7 +195,8 @@
 
     <h2>2. Installing <code class="hcode">CUDA</code></h2>
     <p>Download the latest CUDA Toolkit installer <a href="https://developer.nvidia.com/cuda-toolkit-archive"> from
-            NVIDIA's CUDA Toolkit archive</a> (tested up to CUDA 11.8), then double-click to run. <br>Follow the on-screen instructions. 
+            NVIDIA's CUDA Toolkit archive</a> (tested up to CUDA 11.8), then double-click to run. <br>Follow the
+        on-screen instructions.
         Select <code>Express (Recommended)</code> to install all CUDA components.
         <br>
     </p>
@@ -208,7 +211,8 @@
         <code>Environment Variables</code>.
         <br>
         <br>
-        <b>For all environment variables/paths below:</b> If you are using a different version of CUDA, change the version numbers accordingly.
+        <b>For all environment variables/paths below:</b> If you are using a different version of CUDA, change the
+        version numbers accordingly.
         <br>
         <br>
         First, check that the following System Variables are present. If not, add them:
@@ -286,7 +290,8 @@
         as well as the image that you run through StarNet.
         <br>
         <br>
-        ​I'm running PixInsight 1.8.9-3 on Windows 11, with an AMD Ryzen 9 7950X CPU and NVIDIA GeForce RTX 4070 GPU. A non-linear
+        ​I'm running PixInsight 1.8.9-3 on Windows 11, with an AMD Ryzen 9 7950X CPU and NVIDIA GeForce RTX 4070 GPU. A
+        non-linear
         <code>6000 x 4000</code> image of M31 was used as a benchmark.
     </p>
     <ul>
