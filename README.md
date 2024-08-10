@@ -1,1 +1,1 @@
-# File Storage for William Li Photos Website
+# © 2024 Will Li Photography 
